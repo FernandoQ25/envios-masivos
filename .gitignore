@@ -1,0 +1,13 @@
+# Node.js
+node_modules/
+.env
+config.js
+
+# WhatsApp session (NO subir estas)
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Archivos sensibles u opcionales
+*.log
+64-kommo.xlsx
+600-kommo.xlsx
