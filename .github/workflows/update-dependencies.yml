@@ -1,0 +1,60 @@
+name: Update Node.js Dependencies
+
+# Define cuándo se ejecutará este workflow
+on:
+  # Permite ejecutar el workflow manualmente desde la interfaz de GitHub Actions
+  workflow_dispatch:
+
+  # Opcional: Para ejecutarlo automáticamente a un horario (ej. cada lunes a las 03:00 AM UTC)
+  # schedule:
+  #   - cron: '0 3 * * MON' # Cada lunes a las 03:00 AM UTC
+
+# Permite que el workflow tenga permisos para crear Pull Requests
+permissions:
+  contents: write
+  pull-requests: write
+
+# Define los jobs (tareas) que se ejecutarán
+jobs:
+  update-deps:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        # Esto es crucial: Permite que el workflow pueda hacer commits y crear PRs
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x' # Asegúrate de que coincida con tu versión de Node.js
+
+    - name: Install current dependencies
+      run: npm install
+
+    - name: Update dependencies
+      id: update # Asigna un ID para referenciar este paso
+      run: |
+        npm update # O usa 'npm install' para una reinstalación completa y actualización
+        # Si npm update no hace cambios, el código de salida es 0.
+        # Si hay cambios, se crea un nuevo package-lock.json.
+        # Comprobamos si hay cambios en el repositorio.
+        git diff --exit-code || echo "CHANGES_DETECTED=true" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Create Pull Request if changes detected
+      if: env.CHANGES_DETECTED == 'true' # Solo se ejecuta si se detectaron cambios
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: 'feat(deps): Update Node.js dependencies'
+        title: '🤖 Dependencia(s) de Node.js actualizadas'
+        body: |
+          Este Pull Request actualiza las dependencias de Node.js según `npm update`.
+          Por favor, revisa los cambios y realiza las pruebas necesarias antes de fusionar.
+        branch: 'automated-dependency-update' # Nombre de la rama para el PR
+        delete-branch: true # Elimina la rama después de fusionar el PR
+        labels: |
+          dependencies
+          automated
