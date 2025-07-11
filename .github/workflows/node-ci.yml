@@ -1,0 +1,31 @@
+name: Node.js CI
+
+# Cuando se va a ejecutar este workflow
+on:
+  push:
+    branches: [ main ] # Se ejecuta cuando se suben cambios a la rama 'main'
+  pull_request:
+    branches: [ main ] # Se ejecuta cuando se abre o actualiza un Pull Request a la rama 'main'
+
+# Define los 'jobs' (tareas) que se ejecutarán
+jobs:
+  build:
+    # Sistema operativo donde se ejecutará el job
+    runs-on: ubuntu-latest
+
+    # Pasos que se ejecutarán en este job
+    steps:
+    - name: Checkout code # Paso 1: Descargar tu código del repositorio
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js # Paso 2: Configurar Node.js en el entorno de GitHub Actions
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x' # Usa la versión de Node.js que uses localmente (ej. '18.x', '20.x')
+
+    - name: Install dependencies # Paso 3: Instalar las dependencias de tu proyecto
+      run: npm install
+
+    # Opcional: Si tuvieras un script de pruebas definido en package.json (ej. "test": "jest")
+    # - name: Run tests
+    #   run: npm test
