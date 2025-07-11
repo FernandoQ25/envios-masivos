@@ -1,0 +1,65 @@
+name: Generate Image List Markdown
+
+# Define cuándo se ejecutará este workflow
+on:
+  push:
+    branches: [ main ] # Se ejecuta cuando se suben cambios a la rama 'main'
+    paths:
+      - 'imagenes/**/*.jpg' # Solo si se añade o modifica un JPG en la carpeta 'imagenes'
+      - 'imagenes/**/*.jpeg' # Solo si se añade o modifica un JPEG
+      - 'imagenes/**/*.png' # Solo si se añade o modifica un PNG
+      - 'imagenes/**/*.webp' # Solo si se añade o modifica un WEBP (si los usas)
+  workflow_dispatch: # Permite ejecución manual
+
+# Permite que el workflow tenga permisos para crear Pull Requests
+permissions:
+  contents: write
+  pull-requests: write
+
+# Define los jobs (tareas)
+jobs:
+  update-image-list:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }} # Necesario para hacer commits y PRs
+
+    - name: Generate Image List
+      id: generate_list # Asigna un ID para referenciar este paso
+      run: |
+        # Inicializa o vacía el archivo IMAGENES.md
+        echo "# Listado de Imágenes del Proyecto" > IMAGENES.md
+        echo "" >> IMAGENES.md
+        echo "Este archivo es generado automáticamente por GitHub Actions." >> IMAGENES.md
+        echo "" >> IMAGENES.md
+        echo "---" >> IMAGENES.md
+        echo "" >> IMAGENES.md
+
+        # Busca todas las imágenes en la carpeta 'imagenes'
+        # y añade cada una como un enlace Markdown con el nombre del archivo
+        find imagenes -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \) | sort | while read -r img_path; do
+          img_name=$(basename "$img_path")
+          echo "- [${img_name}](${img_path})" >> IMAGENES.md
+        done
+
+        # Comprueba si hay cambios en el repositorio después de generar el IMAGENES.md
+        git diff --exit-code IMAGENES.md || echo "CHANGES_DETECTED=true" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Create Pull Request if changes detected
+      if: env.CHANGES_DETECTED == 'true'
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: 'docs(images): Update IMAGENES.md with latest image list'
+        title: '🤖 Actualización automática de la lista de imágenes'
+        body: |
+          Este Pull Request actualiza el archivo `IMAGENES.md` con el listado más reciente
+          de las imágenes encontradas en la carpeta `imagenes/`.
+        branch: 'automated-image-list-update'
+        delete-branch: true
+        labels: |
+          documentation
+          automated
